@@ -36,6 +36,7 @@ use pocketmine\event\entity\EntityMotionEvent;
 use pocketmine\event\entity\EntityRegainHealthEvent;
 use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\entity\EntityTeleportEvent;
+use pocketmine\event\entity\EntityWorldChangeEvent;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector2;
@@ -1433,44 +1434,55 @@ abstract class Entity{
 		return $this->onGround;
 	}
 
-	/**
-	 * @param Vector3|Position|Location $pos
-	 */
-	public function teleport(Vector3 $pos, ?float $yaw = null, ?float $pitch = null) : bool{
-		Utils::checkVector3NotInfOrNaN($pos);
-		if($pos instanceof Location){
-			$yaw = $yaw ?? $pos->yaw;
-			$pitch = $pitch ?? $pos->pitch;
-		}
-		if($yaw !== null){
-			Utils::checkFloatNotInfOrNaN("yaw", $yaw);
-		}
-		if($pitch !== null){
-			Utils::checkFloatNotInfOrNaN("pitch", $pitch);
-		}
+    /**
+     * @param Vector3|Position|Location $pos
+    */
+    public function teleport(Vector3 $pos, ?float $yaw = null, ?float $pitch = null): bool
+    {
+    Utils::checkVector3NotInfOrNaN($pos);
+    if ($pos instanceof Location) {
+        $yaw = $yaw ?? $pos->yaw;
+        $pitch = $pitch ?? $pos->pitch;
+    }
+    if ($yaw !== null) {
+        Utils::checkFloatNotInfOrNaN("yaw", $yaw);
+    }
+    if ($pitch !== null) {
+        Utils::checkFloatNotInfOrNaN("pitch", $pitch);
+    }
 
-		$from = $this->location->asPosition();
-		$to = Position::fromObject($pos, $pos instanceof Position ? $pos->getWorld() : $this->getWorld());
-		$ev = new EntityTeleportEvent($this, $from, $to);
-		$ev->call();
-		if($ev->isCancelled()){
-			return false;
-		}
-		$this->ySize = 0;
-		$pos = $ev->getTo();
+    $from = $this->location->asPosition();
+    $to = Position::fromObject($pos, $pos instanceof Position ? $pos->getWorld() : $this->getWorld());
 
-		$this->setMotion(new Vector3(0, 0, 0));
-		if($this->setPositionAndRotation($pos, $yaw ?? $this->location->yaw, $pitch ?? $this->location->pitch)){
-			$this->resetFallDistance();
-			$this->setForceMovementUpdate();
+    if ($to->getWorld()->getName() !== $this->getWorld()->getName()) {
+        $wev = new EntityWorldChangeEvent($this, $to->getWorld(), $this->getWorld());
+        $wev->call();
+        if ($wev->isCancelled()) {
+            return false;
+        }
+    }
 
-			$this->updateMovement(true);
+    $ev = new EntityTeleportEvent($this, $from, $to);
+    $ev->call();
 
-			return true;
-		}
+    if ($ev->isCancelled()) {
+        return false;
+    }
 
-		return false;
-	}
+    $this->ySize = 0;
+    $pos = $ev->getTo();
+
+    $this->setMotion(new Vector3(0, 0, 0));
+    if ($this->setPositionAndRotation($pos, $yaw ?? $this->location->yaw, $pitch ?? $this->location->pitch)) {
+        $this->resetFallDistance();
+        $this->setForceMovementUpdate();
+        $this->updateMovement(true);
+
+        return true;
+    }
+
+    return false;
+    }
 
 	public function getId() : int{
 		return $this->id;
