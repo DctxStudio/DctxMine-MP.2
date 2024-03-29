@@ -1548,10 +1548,6 @@ abstract class Entity{
 		}
 	}
 
-	/**
-	 * @deprecated WARNING: This function DOES NOT permanently hide the entity from the player. As soon as the entity or
-	 * player moves, the player will once again be able to see the entity.
-	 */
 	public function despawnFrom(Player $player, bool $send = true) : void{
 		$id = spl_object_id($player);
 		if(isset($this->hasSpawned[$id])){
@@ -1562,10 +1558,6 @@ abstract class Entity{
 		}
 	}
 
-	/**
-	 * @deprecated WARNING: This function DOES NOT permanently hide the entity from viewers. As soon as the entity or
-	 * player moves, viewers will once again be able to see the entity.
-	 */
 	public function despawnFromAll() : void{
 		NetworkBroadcastUtils::broadcastEntityEvent(
 			$this->hasSpawned,
